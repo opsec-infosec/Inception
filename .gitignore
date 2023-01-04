@@ -1,0 +1,11 @@
+.icarukTime.json
+tmp
+.DS_Store
+.vscode
+.docker/
+srcs/logs/
+.ash_history
+data/db_data/*
+data/www_data/*
+data/code_data/*
+data/redis_data/*

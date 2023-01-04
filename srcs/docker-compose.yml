@@ -1,0 +1,84 @@
+version: '3.9'
+
+services:
+  nginx:
+    container_name: nginx-srv
+    restart: on-failure
+    entrypoint: ["/root/init.sh", "default"]
+    build:
+      context: requirements/nginx
+      args:
+      - DOMAIN_NAME=${DOMAIN_NAME}
+    networks:
+      - frontend
+    ports:
+      - '80:80'
+      - '443:443'
+    env_file:
+      - .env
+    depends_on:
+      - mariadb
+      - wordpress
+    volumes:
+      - www_data:/var/www/html/
+
+  mariadb:
+    container_name: mariadb-srv
+    restart: on-failure
+    build:
+      context: requirements/mariadb
+      args:
+      - MARIA_ROOT_PASSWORD=${MARIA_ROOT_PASSWORD}
+      - MARIA_USER=${MARIA_USER}
+      - MARIA_USER_PASSWORD=${MARIA_USER_PASSWORD}
+      - MARIA_DB=${MARIA_DB}
+    networks:
+      - backend
+    expose:
+      - '3306'
+    env_file:
+      - .env
+    volumes:
+      - db_data:/var/lib/mysql
+
+  wordpress:
+    container_name: wordpress
+    restart: on-failure
+    entrypoint: ["/root/init.sh", "default"]
+    build:
+      context: requirements/wordpress
+      args:
+        - WP_ADMIN_NAME=${WP_ADMIN_NAME}
+        - WP_ADMIN_PW=${WP_ADMIN_PW}
+    networks:
+      - frontend
+      - backend
+    expose:
+      - '9000'
+    env_file:
+      - .env
+    depends_on:
+      - mariadb
+    volumes:
+      - www_data:/var/www/html
+
+volumes:
+  db_data:
+    driver: local
+    name: db_data
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/data/db_data
+
+  www_data:
+    driver: local
+    name: www_data
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/data/www_data
+
+networks:
+  frontend:
+  backend:

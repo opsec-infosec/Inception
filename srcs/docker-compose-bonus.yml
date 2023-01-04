@@ -1,0 +1,86 @@
+version: '3.9'
+
+services:
+  ftp:
+    container_name: ftpd-srv
+    restart: on-failure
+    build:
+      context: bonus/ftpd
+      args:
+      - WP_ADMIN_NAME=${WP_ADMIN_NAME}
+      - WP_ADMIN_PW=${WP_ADMIN_PW}
+    security_opt:
+      - seccomp=unconfined
+    cap_add:
+      - SYS_PTRACE
+    networks:
+      - ftpd
+    ports:
+      - '21:21'
+      - '20:20'
+      - '2121-2142:2121-2142'
+    env_file:
+      - .env
+    depends_on:
+      - wordpress
+    volumes:
+      - www_data:/var/ftpd/
+
+  redis:
+    container_name: redis-srv
+    restart: on-failure
+    build:
+      context: bonus/redis
+    networks:
+      - backend
+    expose:
+      - '6379'
+    env_file:
+      - .env
+    depends_on:
+      - mariadb
+    volumes:
+      - redis_data:/var/lib/redis
+
+  codeserver:
+    container_name: codeserver
+    restart: on-failure
+    build:
+      context: bonus/code-server
+      args:
+      - WP_ADMIN_NAME=${WP_ADMIN_NAME}
+      - WP_ADMIN_PW=${WP_ADMIN_PW}
+    networks:
+      - frontend
+    expose:
+      - '8443'
+    env_file:
+      - .env
+    volumes:
+      - code_data:/home/${WP_ADMIN_NAME}/
+
+  nginx:
+    entrypoint: ["/root/init.sh", "bonus"]
+
+  wordpress:
+    entrypoint: ["/root/init.sh", "bonus"]
+
+volumes:
+  code_data:
+    driver: local
+    name: code_data
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/data/code_data
+
+  redis_data:
+    driver: local
+    name: redis_data
+    driver_opts:
+      type: none
+      o: bind
+      device: /home/${USER}/data/redis_data
+
+networks:
+    ftpd:
